@@ -1,7 +1,12 @@
+#inside jenkins-pipeline we export this ${IMAGE_TAG} for unique name so after image name is look like taskmanager:<jenkinsbuildnumber>
+# taskmanager:1
+# taskmanager:2
+
 version: '3.8'
 
 services:
   taskmanager:
+    image: taskmanager:${IMAGE_TAG}
     build: .
     container_name: taskmanager
     ports:
