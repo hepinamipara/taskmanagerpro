@@ -1,0 +1,64 @@
+//docker images -q $IMAGE_NAME | head -n 1 :- it docker images -q $IMAGE_NAME prints docker image id only and head -n 1 take 1 image id which is latest
+pipeline {
+    agent any
+
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        IMAGE_NAME = "taskmanager"
+        BACKUP_DIR = "/home/ubuntu/image-backup"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+    
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/hepinamipara/taskmanagerpro.git'
+            }
+        }
+
+        stage('Backup Current Image') {
+            steps {
+                script {
+                    sh '''
+                    
+                    mkdir -p $BACKUP_DIR
+                    IMAGE_ID=$(docker images -q $IMAGE_NAME | head -n 1)                  
+                    if [ ! -z "$IMAGE_ID" ]; then
+                        docker save -o $BACKUP_DIR/taskmanager_backup.tar $IMAGE_ID
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy New Version') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                        export IMAGE_TAG=$IMAGE_TAG
+                        docker-compose down || true
+                        docker-compose up -d --build
+                        '''
+                    } catch (err) {
+                        echo "Deployment failed. Restoring previous image..."
+
+                        sh '''
+                        docker load -i $BACKUP_DIR/taskmanager_backup.tar
+                        docker-compose up -d
+                        '''
+
+                        currentBuild.result = 'FAILURE'
+                        throw err
+                    }
+                }
+            }
+        }
+    }
+}
