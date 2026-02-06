@@ -1,0 +1,34 @@
+pipeline {
+    agent any
+
+    triggers {
+        githubPush()
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/hepinamipara/taskmanagerpro.git'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                        docker-compose down || true
+                        docker-compose up -d --build
+                        '''
+                    } catch (err) {
+                        echo "Deployment failed"
+                        currentBuild.result = 'FAILURE'
+                        throw err
+                    }
+                }
+            }
+        }
+    }
+}
