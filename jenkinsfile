@@ -1,4 +1,3 @@
-//docker images -q $IMAGE_NAME | head -n 1 :- it docker images -q $IMAGE_NAME prints docker image id only and head -n 1 take 1 image id which is latest
 pipeline {
     agent any
 
@@ -19,6 +18,19 @@ pipeline {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/hepinamipara/taskmanagerpro.git'
+            }
+        }
+
+       
+        stage('SonarQube Analysis') {
+            steps {
+                sh '''
+                mvn clean verify sonar:sonar \
+                -Dsonar.projectKey=taskmanager \
+                -Dsonar.projectName=taskmanager \
+                -Dsonar.host.url=http://<ip>:9000 \
+                -Dsonar.token=<token>
+                '''
             }
         }
 
